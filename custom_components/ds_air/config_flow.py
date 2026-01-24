@@ -86,7 +86,7 @@ class DsAirOptionsFlowHandler(OptionsFlow):
 
     def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
         self._config_data = []
         self._climates: list[str] = []  # set in async_step_init
         self._len: int = 0  # set in async_step_init
@@ -99,7 +99,7 @@ class DsAirOptionsFlowHandler(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Manage the options."""
-        service = self.hass.data[DOMAIN][self.config_entry.entry_id]
+        service = self.hass.data[DOMAIN][self._config_entry.entry_id]
         self._climates = [state.alias for state in service.get_aircons()]
         self._len = len(self._climates)
 
@@ -136,12 +136,12 @@ class DsAirOptionsFlowHandler(OptionsFlow):
             if self.user_input.get("_invaild"):
                 self.user_input["_invaild"] = False
                 self.hass.config_entries.async_update_entry(
-                    self.config_entry, data=self.user_input
+                    self._config_entry, data=self.user_input
                 )
                 return self.async_create_entry(title="", data={})
         else:
             self.user_input["_invaild"] = True
-            data = self.config_entry.data
+            data = self._config_entry.data
             # if CONF_SENSORS:
             return self.async_show_form(
                 step_id="adjust_config",
@@ -202,7 +202,7 @@ class DsAirOptionsFlowHandler(OptionsFlow):
         if self._cur > (self._len - 1):
             return self.async_create_entry(title="", data={"link": self._config_data})
         cur_climate: str = self._climates[self._cur]
-        cur_links = self.config_entry.options.get("link", [])
+        cur_links = self._config_entry.options.get("link", [])
         cur_link = next(
             (link for link in cur_links if link["climate"] == cur_climate), None
         )
