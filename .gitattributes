@@ -1,0 +1,4 @@
+# Shell scripts must stay LF so they run under WSL/Linux even when checked out
+# on Windows (core.autocrlf=true would otherwise rewrite them to CRLF and break
+# the shebang).
+*.sh text eol=lf

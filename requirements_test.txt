@@ -1,0 +1,3 @@
+# Pulls in pytest, Home Assistant and the custom-component test harness
+# (the plugin pins a compatible Home Assistant version).
+pytest-homeassistant-custom-component
