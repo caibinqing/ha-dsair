@@ -7,13 +7,24 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.const import (
-    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
-    PERCENTAGE,
+    MAJOR_VERSION,
+    MINOR_VERSION,
     UnitOfTemperature,
 )
 from homeassistant.components.sensor import SensorDeviceClass
 
 from .ds_air_service import EnumControl
+
+if (MAJOR_VERSION, MINOR_VERSION) >= (2026, 7):
+    from homeassistant.const import UnitOfDensity, UnitOfRatio
+    CONCENTRATION_MICROGRAMS_PER_CUBIC_METER = UnitOfDensity.MICROGRAMS_PER_CUBIC_METER
+    PERCENTAGE = UnitOfRatio.PERCENTAGE
+else:
+    from homeassistant.const import (
+        CONCENTRATION_MICROGRAMS_PER_CUBIC_METER,
+        PERCENTAGE,
+    )
+
 
 DOMAIN = "ds_air"
 CONF_GW = "gw"
