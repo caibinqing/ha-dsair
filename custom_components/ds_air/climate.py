@@ -50,6 +50,7 @@ from .const import (
     get_mode_name,
 )
 from .ds_air_service import AirCon, AirConStatus, EnumControl, Service, display
+from .device import via_gateway
 from .ds_air_service.ctrl_enum import EnumFanDirection, EnumFanVolume
 from .ds_air_service.dao import build_aircon_device_name
 
@@ -79,7 +80,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up the climate devices."""
     service: Service = hass.data[DOMAIN][entry.entry_id]
-    climates = [DsAir(service, aircon) for aircon in service.get_aircons()]
+    via = via_gateway(hass, entry.entry_id)
+    climates = [DsAir(service, aircon, via) for aircon in service.get_aircons()]
     async_add_entities(climates)
     link = entry.options.get("link")
     climate_by_unique_id = {climate.unique_id: climate for climate in climates}
@@ -135,7 +137,7 @@ class DsAir(ClimateEntity):
 
     _enable_turn_on_off_backwards_compatibility: bool = False  # used in 2024.2~2024.12
 
-    def __init__(self, service: Service, aircon: AirCon):
+    def __init__(self, service: Service, aircon: AirCon, via: DeviceInfo):
         _log("create aircon:")
         _log(str(aircon.__dict__))
         _log(str(aircon.status.__dict__))
@@ -153,7 +155,7 @@ class DsAir(ClimateEntity):
             identifiers={(DOMAIN, self.unique_id)},
             name=build_aircon_device_name(aircon.alias),
             manufacturer=MANUFACTURER,
-            via_device=(DOMAIN, aircon.gateway_id),
+            **via,
         )
         if not self._device_info.config.is_d611:
             # 根据 fan_volume 能力过滤可用风速

@@ -20,6 +20,7 @@ from .const import (
     MANUFACTURER,
     SMALL_VAM_SENSOR_TYPES,
 )
+from .device import via_gateway
 from .coordinator import DsAirPowerCoordinator
 from .descriptions import SENSOR_DESCRIPTORS, DsSensorEntityDescription
 from .ds_air_service import UNINITIALIZED_VALUE, Sensor, Service, Ventilation, VentilationStatus
@@ -66,18 +67,19 @@ async def async_setup_entry(
         return
 
     service: Service = hass.data[DOMAIN][config_entry.entry_id]
+    via = via_gateway(hass, config_entry.entry_id)
     entities = []
     for device in service.get_sensors():
         for key in SENSOR_DESCRIPTORS:
             if config_entry.data.get(key):
                 entities.append(
-                    DsSensor(service, device, SENSOR_DESCRIPTORS.get(key))
+                    DsSensor(service, device, SENSOR_DESCRIPTORS.get(key), via)
                 )
     # 新风传感器
     for vent in service.get_ventilations():
         if vent.is_small_vam:
             for key in SMALL_VAM_SENSOR_TYPES:
-                entities.append(DsVentSensor(service, vent, key))
+                entities.append(DsVentSensor(service, vent, key, via))
     async_add_entities(entities)
 
 
@@ -93,6 +95,7 @@ class DsSensor(SensorEntity):
         service: Service,
         device: Sensor,
         description: DsSensorEntityDescription,
+        via: DeviceInfo,
     ):
         """Initialize the Daikin Sensor."""
         self.entity_description = description
@@ -102,7 +105,7 @@ class DsSensor(SensorEntity):
             identifiers={(DOMAIN, device.unique_id)},
             name=build_sensor_device_name(device.alias),
             manufacturer=MANUFACTURER,
-            via_device=(DOMAIN, device.gateway_id),
+            **via,
         )
 
         self._attr_unique_id = f"{self._data_key}_{device.unique_id}"
@@ -126,7 +129,9 @@ class DsVentSensor(SensorEntity):
 
     _attr_should_poll: bool = False
 
-    def __init__(self, service: Service, device: Ventilation, data_key: str):
+    def __init__(
+        self, service: Service, device: Ventilation, data_key: str, via: DeviceInfo
+    ):
         """Initialize the Daikin Ventilation Sensor."""
         self._data_key = data_key
         self._device = device
@@ -142,7 +147,7 @@ class DsVentSensor(SensorEntity):
             identifiers={(DOMAIN, device.unique_id)},
             name=f"新风 {device.alias}",
             manufacturer=MANUFACTURER,
-            via_device=(DOMAIN, device.gateway_id),
+            **via,
         )
 
         self._attr_unique_id = f"{self._data_key}_{device.unique_id}"

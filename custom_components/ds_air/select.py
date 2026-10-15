@@ -18,6 +18,7 @@ from .ds_air_service import (
     get_vent_mode_name_small_vam,
     get_vent_mode_name_standard_vam,
 )
+from .device import via_gateway
 from .ds_air_service.dao import Ventilation, VentilationStatus
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,10 +51,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up DS-AIR select entities."""
     service: Service = hass.data[DOMAIN][config_entry.entry_id]
+    via = via_gateway(hass, config_entry.entry_id)
     entities = []
     for vent in service.get_ventilations():
-        entities.append(DsVentModeSelect(vent, service))
-        entities.append(DsVentAirFlowSelect(vent, service))
+        entities.append(DsVentModeSelect(vent, service, via))
+        entities.append(DsVentAirFlowSelect(vent, service, via))
     async_add_entities(entities)
 
 
@@ -64,9 +66,10 @@ class DsVentModeSelect(SelectEntity):
     _attr_translation_key = "ventilation_mode"
     _attr_should_poll = False
 
-    def __init__(self, vent: Ventilation, service: Service) -> None:
+    def __init__(self, vent: Ventilation, service: Service, via: DeviceInfo) -> None:
         self._device_info = vent
         self._service = service
+        self._via = via
         self._attr_unique_id = f"mode_{vent.unique_id}"
 
         if vent.is_small_vam:
@@ -83,7 +86,7 @@ class DsVentModeSelect(SelectEntity):
             identifiers={(DOMAIN, self._device_info.unique_id)},
             name=f"新风 {self._device_info.alias}",
             manufacturer=MANUFACTURER,
-            via_device=(DOMAIN, self._device_info.gateway_id),
+            **self._via,
         )
 
     @property
@@ -131,9 +134,10 @@ class DsVentAirFlowSelect(SelectEntity):
     _attr_translation_key = "ventilation_air_flow"
     _attr_should_poll = False
 
-    def __init__(self, vent: Ventilation, service: Service) -> None:
+    def __init__(self, vent: Ventilation, service: Service, via: DeviceInfo) -> None:
         self._device_info = vent
         self._service = service
+        self._via = via
         self._attr_unique_id = f"air_flow_{vent.unique_id}"
         if vent.is_small_vam:
             self._attr_options = _VENT_AIR_FLOW_OPTIONS_SMALL_VAM
@@ -149,7 +153,7 @@ class DsVentAirFlowSelect(SelectEntity):
             identifiers={(DOMAIN, self._device_info.unique_id)},
             name=f"新风 {self._device_info.alias}",
             manufacturer=MANUFACTURER,
-            via_device=(DOMAIN, self._device_info.gateway_id),
+            **self._via,
         )
 
     @property
